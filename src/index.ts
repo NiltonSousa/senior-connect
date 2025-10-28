@@ -1,21 +1,20 @@
 import { configDotenv } from "dotenv";
-import { ChatOpenAI } from "@langchain/openai";
-import { SendMessageImpl } from "./usecases/send-message.js";
+import Fastify from "fastify";
+import routes from "./main/routes.js";
+
 configDotenv();
 
-import { createLogger } from "winston";
-
-const llm = new ChatOpenAI({
-  model: "gpt-4o-mini",
-  temperature: 0,
+const fastify = Fastify({
+  logger: true,
 });
 
-const logger = createLogger();
+fastify.register(routes);
 
-const sendMessageUseCase = new SendMessageImpl(llm, logger);
+fastify.listen({ port: 3000, host: "0.0.0.0" }, function (err, address) {
+  if (err) {
+    fastify.log.error(err);
+    process.exit(1);
+  }
 
-const response = await sendMessageUseCase.send({
-  message: "Hi, i'm nilton :D",
+  fastify.log.info(`server listening on ${address}`);
 });
-
-console.log(JSON.stringify(response, null, 2));
