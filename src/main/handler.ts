@@ -1,4 +1,4 @@
-import type { IMessageRequest } from "@/interfaces/message-request.js";
+import type { IMessageRequest } from "@/domain/messages/message-request.js";
 import { SendMessageImpl } from "@/usecases/send-message.js";
 import { ChatOpenAI } from "@langchain/openai";
 import type { FastifyReply, FastifyRequest } from "fastify";
