@@ -4,7 +4,7 @@ import type { ISendMessageUseCase } from "@/domain/usecases/send-message.js";
 import type { ChatOpenAI } from "@langchain/openai";
 import type { Logger } from "winston";
 
-export class CrawlingMessageUseCaseImpl implements ISendMessageUseCase {
+export class TrackMessageUseCase implements ISendMessageUseCase {
   constructor(
     private readonly llm: ChatOpenAI,
     private readonly logger: Logger
