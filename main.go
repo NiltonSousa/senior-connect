@@ -17,6 +17,24 @@ import (
 	"github.com/tmc/langchaingo/vectorstores/weaviate"
 )
 
+type ragServer struct {
+	ctx          context.Context
+	wvStore      weaviate.Store
+	geminiClient *googleai.GoogleAI
+}
+
+type document struct {
+	Text string
+}
+
+type addRequest struct {
+	Documents []document
+}
+
+type queryRequest struct {
+	Content string
+}
+
 const generativeModelName = "gemini-2.5-flash"
 const embeddingModelName = "text-embedding-004"
 
@@ -58,20 +76,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(address, mux))
 }
 
-type ragServer struct {
-	ctx          context.Context
-	wvStore      weaviate.Store
-	geminiClient *googleai.GoogleAI
-}
-
 func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, req *http.Request) {
-	// Parse HTTP request from JSON.
-	type document struct {
-		Text string
-	}
-	type addRequest struct {
-		Documents []document
-	}
 	ar := &addRequest{}
 
 	err := common.ReadRequestJSON(req, ar)
@@ -80,7 +85,6 @@ func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	// Store documents and their embeddings in weaviate
 	var wvDocs []schema.Document
 	for _, doc := range ar.Documents {
 		wvDocs = append(wvDocs, schema.Document{PageContent: doc.Text})
@@ -93,10 +97,6 @@ func (rs *ragServer) addDocumentsHandler(w http.ResponseWriter, req *http.Reques
 }
 
 func (rs *ragServer) queryHandler(w http.ResponseWriter, req *http.Request) {
-	// Parse HTTP request from JSON.
-	type queryRequest struct {
-		Content string
-	}
 	qr := &queryRequest{}
 	err := common.ReadRequestJSON(req, qr)
 	if err != nil {
@@ -104,7 +104,6 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Find the most similar documents.
 	docs, err := rs.wvStore.SimilaritySearch(rs.ctx, qr.Content, 3)
 	if err != nil {
 		http.Error(w, fmt.Errorf("similarity search: %w", err).Error(), http.StatusInternalServerError)
@@ -115,8 +114,6 @@ func (rs *ragServer) queryHandler(w http.ResponseWriter, req *http.Request) {
 		docsContents = append(docsContents, doc.PageContent)
 	}
 
-	// Create a RAG query for the LLM with the most relevant documents as
-	// context.
 	ragQuery := fmt.Sprintf(ragTemplateStr, qr.Content, strings.Join(docsContents, "\n"))
 	respText, err := llms.GenerateFromSinglePrompt(rs.ctx, rs.geminiClient, ragQuery, llms.WithModel(generativeModelName))
 	if err != nil {
